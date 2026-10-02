@@ -15,6 +15,10 @@ some tasks are overdue and some are due this week. Run it again for fresh dates.
 
 Every formula is a classic one (SUMPRODUCT, AGGREGATE, INDEX, MATCH, COUNTIF,
 IFERROR), so the workbook works in Excel 2010 and later.
+
+The look follows the AZG build style guide: its colours, Calibri, no gridlines,
+tiles with a coloured left bar, list headers on a pale band, teal progress bars
+beside their numbers, and a word on every coloured flag.
 """
 
 from __future__ import annotations
@@ -96,9 +100,9 @@ COLUMN_NAMES = {"ID": "T_ID", "Task": "T_Task", "Owner": "T_Owner", "Status": "T
 
 # Names (Formulas > Name Manager). The dashboard's formulas are built from these.
 NAMES = (
-    ("SelOwner", "=Dashboard!$C$4"),
-    ("SelStatus", "=Dashboard!$E$4"),
-    ("SelYear", "=Dashboard!$I$4"),
+    ("SelOwner", "=Dashboard!$C$5"),
+    ("SelStatus", "=Dashboard!$E$5"),
+    ("SelYear", "=Dashboard!$H$5"),
     # 1 for the first table row, 2 for the second, ...
     ("RowNo", "=ROW(T_ID)-MIN(ROW(T_ID))+1"),
     # One TRUE/FALSE per table row: does it pass each filter?
@@ -123,20 +127,50 @@ NAMES = (
 
 # Excel constants.
 XL_CENTER, XL_LEFT, XL_RIGHT = -4108, -4131, -4152
-XL_EDGE_LEFT, XL_EDGE_TOP, XL_EDGE_BOTTOM, XL_EDGE_RIGHT = 7, 8, 9, 10
+XL_EDGE_LEFT, XL_EDGE_TOP, XL_EDGE_BOTTOM, XL_EDGE_RIGHT, XL_INSIDE_HORIZONTAL = 7, 8, 9, 10, 12
 XL_THIN, XL_MEDIUM, XL_THICK = 2, -4138, 4
-XL_VALIDATE_LIST, XL_VALIDATE_DECIMAL = 3, 2
-XL_CELL_VALUE, XL_EXPRESSION, XL_EQUAL, XL_BETWEEN = 1, 2, 3, 1
+XL_VALIDATE_INPUT_ONLY, XL_VALIDATE_LIST, XL_VALIDATE_DECIMAL = 0, 3, 2
+XL_CELL_VALUE, XL_EXPRESSION, XL_EQUAL, XL_GREATER, XL_BETWEEN = 1, 2, 3, 5, 1
 XL_OPEN_XML_WORKBOOK = 51
 
-NAVY, GREY, PALE = "#1F3A5F", "#6B7785", "#EEF1F5"
-TILES = (  # label, formula, fill, ink, name, label cells, number cells
-    ("TOTAL TASKS", "=SUMPRODUCT(InScope)", "#E8EDF4", NAVY, "KpiTotal", "B6:C6", "B7:C8"),
-    ("DONE", '=SUMPRODUCT(InScope*(Tasks[Status]="Done"))', "#E3F4E8", "#1E7B3A", "KpiDone", "D6:G6", "D7:G8"),
-    ("IN PROGRESS", '=SUMPRODUCT(InScope*(Tasks[Status]="In progress"))', "#E3EEFB", "#1B5FAE", "KpiInProgress", "H6:I6", "H7:I8"),
-    ("OVERDUE", "=SUMPRODUCT(CondOverdue)", "#FCE4E4", "#B42323", "KpiOverdue", "J6:L6", "J7:L8"),
-    ("DUE THIS WEEK", "=SUMPRODUCT(CondFocus)", "#FFF1D6", "#9A6200", "KpiDueThisWeek", "M6:O6", "M7:O8"),
+# The palette of the AZG build style guide (section 2). No other colours are used.
+NAVY, INK, SLATE = "#1F3A5F", "#1F2937", "#5B6B7F"
+LINE, SURFACE, WHITE = "#E2E8F0", "#F5F7FA", "#FFFFFF"
+TEAL, RED, GREEN = "#0F766E", "#B42318", "#2E7D32"
+AMBER_FILL, AMBER_TEXT = "#FDE7B0", "#7A4A00"
+
+# The Dashboard grid. The main list is on the left (three tile widths), the
+# supporting blocks on the right (two tile widths); every tile is 36 wide.
+WIDTHS = {"A": 2,
+          "B": 9, "C": 27,  # tile 1: Due, Task
+          "D": 11, "E": 12, "F": 13,  # tile 2: Flag, Owner, Status
+          "G": 10, "H": 7, "I": 9, "J": 10,  # tile 3: Priority, %, bar, Department
+          "K": 3,
+          "L": 10, "M": 26,  # tile 4
+          "N": 12, "O": 10, "P": 6, "Q": 8,  # tile 5
+          "R": 2}
+DASHBOARD_AREA = "$A$1:$R$38"
+
+TILES = (  # label, formula, colour of the left bar and the number, name, label cells, number cells
+    ("TOTAL TASKS", "=SUMPRODUCT(InScope)", NAVY, "KpiTotal", "B7:C7", "B8:C9"),
+    ("OVERDUE", "=SUMPRODUCT(CondOverdue)", RED, "KpiOverdue", "D7:F7", "D8:F9"),
+    ("DUE THIS WEEK", "=SUMPRODUCT(CondFocus)", AMBER_TEXT, "KpiDueThisWeek", "G7:J7", "G8:J9"),
+    ("IN PROGRESS", '=SUMPRODUCT(InScope*(Tasks[Status]="In progress"))', NAVY, "KpiInProgress", "L7:M7", "L8:M9"),
+    ("DONE", '=SUMPRODUCT(InScope*(Tasks[Status]="Done"))', NAVY, "KpiDone", "N7:Q7", "N8:Q9"),
 )
+
+# Where each Dashboard list sits, for the test. "columns" picks the tested fields
+# out of the block, in the order the test expects, skipping the progress-bar column.
+LAYOUT = {
+    # Due, Task, Flag, Owner, Status, Priority, %, bar, Department
+    "view": {"cells": "B13:J27", "columns": (0, 1, 3, 4, 5, 6, 2, 8), "more": "B28"},
+    # Due, Task, Days left, Owner, Status, Priority, %, bar, Department
+    "next": {"cells": "B32:J36", "columns": (0, 1, 3, 4, 5, 6, 2, 8), "more": "B37"},
+    # Due, Task, Owner, Priority, %, bar
+    "focus": {"cells": "L13:Q20", "columns": (0, 1, 2, 3, 4), "more": "L21"},
+    # Owner, bar, Average %, Tasks, Done, Overdue
+    "owners": {"cells": "L25:Q32", "columns": (0, 2, 3, 4, 5), "more": "L33"},
+}
 
 
 def rgb(hex_color: str) -> int:
@@ -161,13 +195,15 @@ def task_rows(today: dt.date) -> list[tuple]:
 
 # ---- Sheet builders -----------------------------------------------------------
 
-def add_data_bar(cells, color: str) -> None:
+def add_data_bar(cells) -> None:
+    """A solid teal bar on a fixed 0% to 100% scale, with no number over it."""
     bar = cells.FormatConditions.AddDatabar()
     bar.MinPoint.Modify(0, 0)  # fixed scale: 0% is empty,
     bar.MaxPoint.Modify(0, 1)  # 100% is a full bar
-    bar.BarColor.Color = rgb(color)
+    bar.BarColor.Color = rgb(TEAL)
     bar.BarFillType = 0  # solid
     bar.BarBorder.Type = 0  # no border
+    bar.ShowValue = False  # the % sits in its own column, so the bar never covers it
 
 
 def formula_rule(cells, formula: str):
@@ -183,6 +219,22 @@ def color_when_equal(cells, text: str, ink: str, fill: str | None = None, bold: 
         rule.Interior.Color = rgb(fill)
 
 
+def add_table_style(workbook) -> str:
+    """The guide's data-sheet look: navy header, pale input cells, one thin rule per row."""
+    style = workbook.TableStyles.Add("AZG Table")
+    whole = style.TableStyleElements(0)  # whole table
+    whole.Interior.Color = rgb(SURFACE)
+    whole.Font.Color = rgb(INK)
+    for edge in (XL_INSIDE_HORIZONTAL, XL_EDGE_BOTTOM):
+        whole.Borders(edge).LineStyle = 1
+        whole.Borders(edge).Color = rgb(LINE)
+    header = style.TableStyleElements(1)  # header row
+    header.Interior.Color = rgb(NAVY)
+    header.Font.Color = rgb(WHITE)
+    header.Font.Bold = True
+    return style.Name
+
+
 def build_tasks(sheet, today: dt.date):
     rows = task_rows(today)
     last = 1 + len(rows)
@@ -190,7 +242,7 @@ def build_tasks(sheet, today: dt.date):
     sheet.Range(sheet.Cells(2, 1), sheet.Cells(last, 11)).Value = tuple(rows)
     table = sheet.ListObjects.Add(1, sheet.Range(sheet.Cells(1, 1), sheet.Cells(last, 11)), None, 1)
     table.Name = "Tasks"
-    table.TableStyle = "TableStyleMedium2"
+    table.TableStyle = add_table_style(sheet.Parent)
     # A calculated column: new rows get their Year from their Due date.
     table.ListColumns("Year").DataBodyRange.Formula = '=IF([@Due]="","",YEAR([@Due]))'
     for column, name in COLUMN_NAMES.items():
@@ -198,10 +250,12 @@ def build_tasks(sheet, today: dt.date):
 
     sheet.Range("G:H").NumberFormat = "mmm d, yyyy"
     sheet.Range("I:I").NumberFormat = "0%"
-    for column, width in zip("ABCDEFGHIJK", (8, 30, 13, 13, 13, 10, 14, 14, 13, 8, 30)):
+    for column, width in zip("ABCDEFGHIJK", (8, 30, 13, 13, 13, 10, 14, 25, 13, 8, 30)):
         sheet.Columns(column).ColumnWidth = width
     sheet.Range("A:A").HorizontalAlignment = XL_LEFT
     sheet.Range("J:J").HorizontalAlignment = XL_CENTER
+    sheet.Rows(1).RowHeight = 22
+    sheet.Rows(1).VerticalAlignment = XL_CENTER
 
     def dropdown(column: str, choices: tuple[str, ...]) -> None:
         validation = table.ListColumns(column).DataBodyRange.Validation
@@ -218,23 +272,33 @@ def build_tasks(sheet, today: dt.date):
     percent.ErrorTitle = "% Complete"
     percent.ErrorMessage = "Type a percentage from 0% to 100%."
 
+    # Year is calculated, not typed: left white, in slate italics, with a note
+    # that shows when a Year cell is selected. (A cell comment would store the
+    # Office user's name in the file, so the note is an input message instead.)
+    year = table.ListColumns("Year").DataBodyRange
+    year.Interior.Color = rgb(WHITE)
+    year.Font.Color = rgb(SLATE)
+    year.Font.Italic = True
+    year.Validation.Delete()
+    year.Validation.Add(XL_VALIDATE_INPUT_ONLY)
+    year.Validation.InputTitle = "Year"
+    year.Validation.InputMessage = "Calculated: fills itself in from Due. No need to type here."
+
     # Overdue flags. The rules cover the whole column, so new rows are covered too.
+    # Each flag carries a word as well as a colour, added by the rule's number format.
     sheet.Activate()
     sheet.Range("H1").Select()  # rule formulas are read relative to the active cell
     overdue = '=AND(ISNUMBER($H1),$H1<TODAY(),$E1<>"Done")'
     this_week = '=AND(ISNUMBER($H1),$H1>=TODAY(),$H1<=TODAY()+6,$E1<>"Done")'
     rule = formula_rule(sheet.Range("H:H"), overdue)
-    rule.Interior.Color = rgb("#D64545")
-    rule.Font.Color = rgb("#FFFFFF")
+    rule.Interior.Color = rgb(RED)
+    rule.Font.Color = rgb(WHITE)
     rule.Font.Bold = True
+    rule.NumberFormat = 'mmm d, yyyy"   OVERDUE"'
     rule = formula_rule(sheet.Range("H:H"), this_week)
-    rule.Interior.Color = rgb("#FFE2A8")
-    rule.Font.Color = rgb("#6B4500")
-    sheet.Range("B1").Select()
-    rule = formula_rule(sheet.Range("B:B"), overdue)
-    rule.Font.Color = rgb("#B42323")
-    rule.Font.Bold = True
-    add_data_bar(sheet.Range("I:I"), "#7FB2E5")
+    rule.Interior.Color = rgb(AMBER_FILL)
+    rule.Font.Color = rgb(AMBER_TEXT)
+    rule.NumberFormat = 'mmm d, yyyy"   this week"'
 
     sheet.Range("A2").Select()
     sheet.Application.ActiveWindow.FreezePanes = True
@@ -245,14 +309,16 @@ def build_tasks(sheet, today: dt.date):
 def build_lists(sheet) -> None:
     sheet.Range("A1").Value = "Helper lists for the Dashboard. These are formulas: please don't type on this sheet."
     sheet.Range("A1").Font.Bold = True
+    sheet.Range("A1").Font.Color = rgb(NAVY)
     sheet.Range("A2").Value = "Dropdown choices on the left; on the right, which table row each dashboard list line shows."
-    sheet.Range("A2").Font.Color = rgb(GREY)
+    sheet.Range("A2").Font.Color = rgb(SLATE)
 
     def heading(address: str, text: str) -> None:
         cell = sheet.Range(address)
         cell.Value = text
         cell.Font.Bold = True
-        cell.Interior.Color = rgb(PALE)
+        cell.Font.Color = rgb(NAVY)
+        cell.Interior.Color = rgb(LINE)
 
     heading("A3", "Owner choices")
     sheet.Range("A4").Value = ALL
@@ -288,45 +354,45 @@ def build_lists(sheet) -> None:
     for column, width in (("A", 22), ("B", 3), ("C", 16), ("D", 3), ("E", 14), ("F", 3), ("G", 5), ("H", 24),
                           ("I", 11), ("J", 3), ("K", 5), ("L", 18), ("M", 11), ("N", 3), ("O", 5), ("P", 20), ("Q", 11)):
         sheet.Columns(column).ColumnWidth = width
-    sheet.Tab.Color = rgb("#B8C0CC")
+    sheet.Tab.Color = rgb(SLATE)
 
 
 def build_dashboard(sheet, workbook) -> None:
     excel = sheet.Application
     sheet.Activate()
     excel.ActiveWindow.DisplayGridlines = False
-    widths = {"A": 2, "B": 11, "C": 27, "D": 13, "E": 11, "F": 11, "G": 2, "H": 11, "I": 27,
-              "J": 13, "K": 13, "L": 11, "M": 12, "N": 12, "O": 13, "P": 2}
-    for column, width in widths.items():
+    for column, width in WIDTHS.items():  # column A is the gutter
         sheet.Columns(column).ColumnWidth = width
-    sheet.Range("A1:P40").VerticalAlignment = XL_CENTER
+    sheet.Range("A1:R40").VerticalAlignment = XL_CENTER
 
-    title = sheet.Range("B1")
+    # ---- Top band: title, "As of" line, filters. Row 1 is a spacer.
+    sheet.Rows(1).RowHeight = 8
+    title = sheet.Range("B2")
     title.Value = "Work Tracker Dashboard"
     title.Font.Size = 20
     title.Font.Bold = True
     title.Font.Color = rgb(NAVY)
-    sheet.Rows(1).RowHeight = 32
-    subtitle = sheet.Range("B2")
-    subtitle.Formula = '="As of "&TEXT(TODAY(),"ddd, mmm d, yyyy")&"   |   Pick an owner, status or year: the whole page follows."'
-    subtitle.Font.Color = rgb(GREY)
-    sheet.Rows(3).RowHeight = 8
+    sheet.Rows(2).RowHeight = 30
+    as_of = sheet.Range("B3")
+    as_of.Formula = '="As of "&TEXT(TODAY(),"ddd, mmm d, yyyy")&"   |   Pick an owner, status or year: the whole page follows."'
+    as_of.Font.Color = rgb(SLATE)
+    sheet.Rows(4).RowHeight = 6
 
-    # ---- Filters
     def filter_cell(label_at: str, label: str, cell_at: str, merge: str | None, source: str) -> None:
         tag = sheet.Range(label_at)
         tag.Value = label
         tag.Font.Bold = True
+        tag.Font.Color = rgb(SLATE)
         tag.HorizontalAlignment = XL_RIGHT
         box = sheet.Range(merge or cell_at)
         if merge:
             box.Merge()
-        box.Interior.Color = rgb("#FFF9E0")
+        box.Interior.Color = rgb(LINE)  # the light navy-tinted fill that marks an input
         box.Font.Bold = True
+        box.Font.Color = rgb(NAVY)
         box.HorizontalAlignment = XL_LEFT
-        for edge in (XL_EDGE_LEFT, XL_EDGE_TOP, XL_EDGE_BOTTOM, XL_EDGE_RIGHT):
-            box.Borders(edge).Color = rgb("#C9A227")
-            box.Borders(edge).Weight = XL_THIN
+        box.Borders(XL_EDGE_BOTTOM).Color = rgb(NAVY)
+        box.Borders(XL_EDGE_BOTTOM).Weight = XL_THIN
         cell = sheet.Range(cell_at)
         cell.Value = ALL
         validation = cell.Validation
@@ -335,41 +401,41 @@ def build_dashboard(sheet, workbook) -> None:
         validation.ErrorTitle = label
         validation.ErrorMessage = "Pick a value from the list."
 
-    filter_cell("B4", "Owner", "C4", None, "OwnerList")
-    filter_cell("D4", "Status", "E4", "E4:F4", "StatusList")
-    filter_cell("H4", "Year", "I4", None, "YearList")
-    hint = sheet.Range("J4")
+    filter_cell("B5", "Owner", "C5", None, "OwnerList")
+    filter_cell("D5", "Status", "E5", "E5:F5", "StatusList")
+    filter_cell("G5", "Year", "H5", "H5:I5", "YearList")
+    hint = sheet.Range("L5")
     hint.Formula = (f'=IF(AND(OR(SelOwner="{ALL}",SelOwner=""),OR(SelStatus="{ALL}",SelStatus=""),'
                     f'OR(SelYear="{ALL}",SelYear="")),"Showing all tasks","Filtered view: choose {ALL} to clear")')
     hint.Font.Italic = True
-    hint.Font.Color = rgb(GREY)
-    sheet.Rows(4).RowHeight = 22
-    sheet.Rows(5).RowHeight = 8
+    hint.Font.Size = 9
+    hint.Font.Color = rgb(SLATE)
+    sheet.Rows(5).RowHeight = 22
+    sheet.Rows(6).RowHeight = 10
 
-    # ---- Totals
-    for label, formula, fill, ink, name, label_cells, number_cells in TILES:
+    # ---- KPI row: white tiles of equal width, a coloured left bar, label above, number below.
+    for label, formula, color, name, label_cells, number_cells in TILES:
         tag = sheet.Range(label_cells)
         tag.Merge()
         tag.Value = label
         tag.Font.Size = 9
-        tag.Font.Bold = True
+        tag.Font.Color = rgb(SLATE)
         number = sheet.Range(number_cells)
         number.Merge()
         number.Formula = formula
-        number.Font.Size = 30
+        number.Font.Size = 36
         number.Font.Bold = True
+        number.Font.Color = rgb(color)
         for part in (tag, number):
-            part.Interior.Color = rgb(fill)
-            part.Font.Color = rgb(ink)
             part.HorizontalAlignment = XL_LEFT
             part.IndentLevel = 1
-            part.Borders(XL_EDGE_RIGHT).Color = rgb("#FFFFFF")
-            part.Borders(XL_EDGE_RIGHT).Weight = XL_THICK
-        workbook.Names.Add(name, "=Dashboard!" + sheet.Range(number_cells).Cells(1, 1).Address)
-    sheet.Rows(6).RowHeight = 20
-    sheet.Rows(7).RowHeight = 24
-    sheet.Rows(8).RowHeight = 24
-    sheet.Rows(9).RowHeight = 10
+            part.Borders(XL_EDGE_LEFT).Color = rgb(color)
+            part.Borders(XL_EDGE_LEFT).Weight = XL_THICK
+        workbook.Names.Add(name, "=Dashboard!" + number.Cells(1, 1).Address)
+    sheet.Rows(7).RowHeight = 18
+    sheet.Rows(8).RowHeight = 26
+    sheet.Rows(9).RowHeight = 26
+    sheet.Rows(10).RowHeight = 12
 
     # ---- Shared styles
     def section(address: str, text: str, note_at: str, note: str, as_formula: bool = False) -> None:
@@ -383,121 +449,135 @@ def build_dashboard(sheet, workbook) -> None:
             extra.Formula = note
         else:
             extra.Value = note
+        extra.Font.Size = 9
         extra.Font.Italic = True
-        extra.Font.Color = rgb(GREY)
+        extra.Font.Color = rgb(SLATE)
 
     def header_row(first: str, last: str, row: int, labels: tuple[str, ...]) -> None:
         cells = sheet.Range(f"{first}{row}:{last}{row}")
         cells.Value = (labels,)
         cells.Font.Bold = True
-        cells.Interior.Color = rgb(PALE)
-        cells.Borders(XL_EDGE_BOTTOM).Color = rgb("#AEB7C2")
-        cells.Borders(XL_EDGE_BOTTOM).Weight = XL_THIN
+        cells.Font.Color = rgb(NAVY)
+        cells.Interior.Color = rgb(LINE)
 
     def more_line(address: str, count: str, shown: int, what: str = "more not shown") -> None:
         cell = sheet.Range(address)
         cell.Formula = f'=IF({count}>{shown},"+ "&({count}-{shown})&" {what}","")'
+        cell.Font.Size = 9
         cell.Font.Italic = True
-        cell.Font.Color = rgb(GREY)
+        cell.Font.Color = rgb(SLATE)
 
     def lookup(column: str, pick: str, text: bool = True) -> str:
         return f'INDEX(Tasks[{column}],{pick})' + ('&""' if text else "")
 
-    # ---- This Week's Focus (left, rows 10-20)
-    section("B10", "This Week's Focus", "D10", "Not done, due in the next 7 days")
-    header_row("B", "F", 11, ("Due", "Task", "Owner", "Priority", "% done"))
-    for n in range(FOCUS_ROWS):
-        row, pick, key = 12 + n, f"Lists!$I{4 + n}", f"Lists!$H{4 + n}"
-        empty = '"Nothing due in the next 7 days"' if n == 0 else '""'
-        sheet.Range(f"B{row}").Formula = f'=IF({pick}="","",INT({key}))'
-        sheet.Range(f"C{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
-        sheet.Range(f"D{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
-        sheet.Range(f"E{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
-        sheet.Range(f"F{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
-    more_line("B20", "KpiDueThisWeek", FOCUS_ROWS)
-    box = sheet.Range("B10:F20")
-    box.Interior.Color = rgb("#FFF8E6")
-    for edge in (XL_EDGE_LEFT, XL_EDGE_TOP, XL_EDGE_BOTTOM, XL_EDGE_RIGHT):
-        box.Borders(edge).Color = rgb("#E0A526")
-        box.Borders(edge).Weight = XL_MEDIUM
-    sheet.Range("B11:F11").Interior.Color = rgb("#FBE9B7")
+    def bar_of(percent_cell: str) -> str:
+        """The progress-bar cell: the same number as its % cell, drawn as a bar."""
+        return f'=IF({percent_cell}="","",{percent_cell})'
 
-    # ---- Next due dates (right, rows 10-17)
-    section("H10", f"Next {NEXT_ROWS} due dates", "J10", "Not done, soonest first")
-    right_labels = ("Due", "Task", "Owner", "Status", "Priority", "% done", "Days left", "Department")
-    header_row("H", "O", 11, right_labels)
-    for n in range(NEXT_ROWS):
-        row, pick, key = 12 + n, f"Lists!$M{4 + n}", f"Lists!$L{4 + n}"
-        empty = '"Nothing coming up"' if n == 0 else '""'
-        sheet.Range(f"H{row}").Formula = f'=IF({pick}="","",INT({key}))'
-        sheet.Range(f"I{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
-        sheet.Range(f"J{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
-        sheet.Range(f"K{row}").Formula = f'=IF({pick}="","",{lookup("Status", pick)})'
-        sheet.Range(f"L{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
-        sheet.Range(f"M{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
-        sheet.Range(f"N{row}").Formula = f'=IF({pick}="","",INT({key})-TODAY())'
-        sheet.Range(f"O{row}").Formula = f'=IF({pick}="","",{lookup("Department", pick)})'
-    more_line("H17", "SUMPRODUCT(CondUpcoming)", NEXT_ROWS)
-
-    # ---- Tasks in view (right, rows 19-36)
-    section("H19", "Tasks in view", "J19", '="Open tasks first, then by due date   |   "&KpiTotal&" match the filters"', as_formula=True)
-    header_row("H", "O", 20, right_labels[:6] + ("Flag", "Department"))
+    # ---- Tasks in view: the main list (left, rows 11-28)
+    section("B11", "Tasks in view", "E11", '="Open tasks first, then by due date   |   "&KpiTotal&" match the filters"', as_formula=True)
+    header_row("B", "J", 12, ("Due", "Task", "Flag", "Owner", "Status", "Priority", "% done", "", "Department"))
     for n in range(VIEW_ROWS):
-        row, pick, key = 21 + n, f"Lists!$Q{4 + n}", f"Lists!$P{4 + n}"
+        row, pick, key = 13 + n, f"Lists!$Q{4 + n}", f"Lists!$P{4 + n}"
         empty = '"No tasks match these filters"' if n == 0 else '""'
         due = f"MOD(INT({key}),100000)"  # takes the "Done" 100000 back off the sort key
-        sheet.Range(f"H{row}").Formula = f'=IF({pick}="","",IF({due}=99999,"",{due}))'
-        sheet.Range(f"I{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
-        sheet.Range(f"J{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
-        sheet.Range(f"K{row}").Formula = f'=IF({pick}="","",{lookup("Status", pick)})'
-        sheet.Range(f"L{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
-        sheet.Range(f"M{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
-        sheet.Range(f"N{row}").Formula = (f'=IF(OR({pick}="",H{row}="",K{row}="Done"),"",'
-                                         f'IF(H{row}<TODAY(),"OVERDUE",IF(H{row}<=TODAY()+6,"This week","")))')
-        sheet.Range(f"O{row}").Formula = f'=IF({pick}="","",{lookup("Department", pick)})'
-    more_line("H36", "KpiTotal", VIEW_ROWS)
+        sheet.Range(f"B{row}").Formula = f'=IF({pick}="","",IF({due}=99999,"",{due}))'
+        sheet.Range(f"C{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
+        sheet.Range(f"D{row}").Formula = (f'=IF(OR({pick}="",B{row}="",F{row}="Done"),"",'
+                                         f'IF(B{row}<TODAY(),"OVERDUE",IF(B{row}<=TODAY()+6,"This week","")))')
+        sheet.Range(f"E{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
+        sheet.Range(f"F{row}").Formula = f'=IF({pick}="","",{lookup("Status", pick)})'
+        sheet.Range(f"G{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
+        sheet.Range(f"H{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
+        sheet.Range(f"I{row}").Formula = bar_of(f"H{row}")
+        sheet.Range(f"J{row}").Formula = f'=IF({pick}="","",{lookup("Department", pick)})'
+    more_line("B28", "KpiTotal", VIEW_ROWS)
 
-    # ---- Progress by owner (left, rows 22-32)
-    section("B22", "Progress by owner", "D22", "Follows the filters")
-    header_row("B", "F", 23, ("Owner", "Average % done", "Tasks", "Done", "Overdue"))
+    # ---- Next due dates (left, rows 30-37), on the same columns as the main list
+    section("B30", f"Next {NEXT_ROWS} due dates", "E30", "Not done, soonest first")
+    header_row("B", "J", 31, ("Due", "Task", "Days left", "Owner", "Status", "Priority", "% done", "", "Department"))
+    for n in range(NEXT_ROWS):
+        row, pick, key = 32 + n, f"Lists!$M{4 + n}", f"Lists!$L{4 + n}"
+        empty = '"Nothing coming up"' if n == 0 else '""'
+        sheet.Range(f"B{row}").Formula = f'=IF({pick}="","",INT({key}))'
+        sheet.Range(f"C{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
+        sheet.Range(f"D{row}").Formula = f'=IF({pick}="","",INT({key})-TODAY())'
+        sheet.Range(f"E{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
+        sheet.Range(f"F{row}").Formula = f'=IF({pick}="","",{lookup("Status", pick)})'
+        sheet.Range(f"G{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
+        sheet.Range(f"H{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
+        sheet.Range(f"I{row}").Formula = bar_of(f"H{row}")
+        sheet.Range(f"J{row}").Formula = f'=IF({pick}="","",{lookup("Department", pick)})'
+    more_line("B37", "SUMPRODUCT(CondUpcoming)", NEXT_ROWS)
+
+    # ---- This Week's Focus (right, rows 11-21)
+    section("L11", "This Week's Focus", "N11", "Not done, due in the next 7 days")
+    header_row("L", "Q", 12, ("Due", "Task", "Owner", "Priority", "% done", ""))
+    for n in range(FOCUS_ROWS):
+        row, pick, key = 13 + n, f"Lists!$I{4 + n}", f"Lists!$H{4 + n}"
+        empty = '"Nothing due in the next 7 days"' if n == 0 else '""'
+        sheet.Range(f"L{row}").Formula = f'=IF({pick}="","",INT({key}))'
+        sheet.Range(f"M{row}").Formula = f'=IF({pick}="",{empty},{lookup("Task", pick)})'
+        sheet.Range(f"N{row}").Formula = f'=IF({pick}="","",{lookup("Owner", pick)})'
+        sheet.Range(f"O{row}").Formula = f'=IF({pick}="","",{lookup("Priority", pick)})'
+        sheet.Range(f"P{row}").Formula = f'=IF({pick}="","",{lookup("% Complete", pick, text=False)})'
+        sheet.Range(f"Q{row}").Formula = bar_of(f"P{row}")
+    more_line("L21", "KpiDueThisWeek", FOCUS_ROWS)
+
+    # ---- Progress by owner (right, rows 23-33)
+    section("L23", "Progress by owner", "N23", "Follows the filters")
+    header_row("L", "Q", 24, ("Owner", "Average % done", "", "Tasks", "Done", "Overdue"))
     for n in range(OWNER_ROWS):
-        row, owner = 24 + n, f"Lists!$A{5 + n}"
-        sheet.Range(f"B{row}").Formula = f'=IF({owner}="","",{owner})'
-        sheet.Range(f"C{row}").Formula = (f'=IF(OR(B{row}="",D{row}=0),"",'
-                                         f'SUMPRODUCT(InScope*(Tasks[Owner]=B{row})*Tasks[% Complete])/D{row})')
-        sheet.Range(f"D{row}").Formula = f'=IF(B{row}="","",SUMPRODUCT(InScope*(Tasks[Owner]=B{row})))'
-        sheet.Range(f"E{row}").Formula = f'=IF(B{row}="","",SUMPRODUCT(InScope*(Tasks[Owner]=B{row})*(Tasks[Status]="Done")))'
-        sheet.Range(f"F{row}").Formula = f'=IF(B{row}="","",SUMPRODUCT(CondOverdue*(Tasks[Owner]=B{row})))'
-    more_line("B32", 'COUNTIF(Lists!$A$5:$A$34,"?*")', OWNER_ROWS, "more owners not shown")
+        row, owner = 25 + n, f"Lists!$A{5 + n}"
+        sheet.Range(f"L{row}").Formula = f'=IF({owner}="","",{owner})'
+        sheet.Range(f"M{row}").Formula = bar_of(f"N{row}")
+        sheet.Range(f"N{row}").Formula = (f'=IF(OR(L{row}="",O{row}=0),"",'
+                                         f'SUMPRODUCT(InScope*(Tasks[Owner]=L{row})*Tasks[% Complete])/O{row})')
+        sheet.Range(f"O{row}").Formula = f'=IF(L{row}="","",SUMPRODUCT(InScope*(Tasks[Owner]=L{row})))'
+        sheet.Range(f"P{row}").Formula = f'=IF(L{row}="","",SUMPRODUCT(InScope*(Tasks[Owner]=L{row})*(Tasks[Status]="Done")))'
+        sheet.Range(f"Q{row}").Formula = f'=IF(L{row}="","",SUMPRODUCT(CondOverdue*(Tasks[Owner]=L{row})))'
+    more_line("L33", 'COUNTIF(Lists!$A$5:$A$34,"?*")', OWNER_ROWS, "more owners not shown")
 
     # ---- Number formats, alignment, colour
-    # The left and right lists share rows, so every row from 10 down is one height.
-    sheet.Range("10:37").RowHeight = 18
-    for address in ("B12:B19", "H12:H16", "H21:H35"):
+    # The left and right lists share rows, so every row from 11 down is one height.
+    sheet.Range("11:38").RowHeight = 18
+    for address in ("B13:B27", "B32:B36", "L13:L20"):
         sheet.Range(address).NumberFormat = "mmm d"
         sheet.Range(address).HorizontalAlignment = XL_LEFT
-    for address, color in (("F12:F19", "#E8B84A"), ("M12:M16", "#7FB2E5"), ("M21:M35", "#7FB2E5"), ("C24:C31", "#6DBE8B")):
+    for address in ("H13:H27", "H32:H36", "P13:P20", "N25:N32"):
         sheet.Range(address).NumberFormat = "0%"
-        add_data_bar(sheet.Range(address), color)
-    sheet.Range("N12:N16").NumberFormat = '[=0]"today";[=1]"1 day";0" days"'
-    sheet.Range("N12:N16").HorizontalAlignment = XL_LEFT
-    sheet.Range("D24:F31").HorizontalAlignment = XL_CENTER
-    sheet.Range("D23:F23").HorizontalAlignment = XL_CENTER
-    color_when_equal(sheet.Range("N21:N35"), "OVERDUE", "#FFFFFF", "#D64545")
-    color_when_equal(sheet.Range("N21:N35"), "This week", "#6B4500", "#FFE2A8", bold=False)
-    sheet.Range("N21:N35").HorizontalAlignment = XL_CENTER
-    for address in ("E12:E19", "L12:L16", "L21:L35"):
-        color_when_equal(sheet.Range(address), "High", "#B42323")
-    for address in ("K12:K16", "K21:K35"):
-        color_when_equal(sheet.Range(address), "Blocked", "#C25E00")
-        color_when_equal(sheet.Range(address), "Done", "#1E7B3A", bold=False)
-    overdue_cells = sheet.Range("F24:F31")
-    rule = overdue_cells.FormatConditions.Add(XL_CELL_VALUE, 5, "=0")  # greater than 0
-    rule.Font.Color = rgb("#B42323")
+    for address in ("I13:I27", "I32:I36", "Q13:Q20", "M25:M32"):
+        add_data_bar(sheet.Range(address))
+    sheet.Range("H12,H31,P12").HorizontalAlignment = XL_RIGHT
+    sheet.Range("N24:Q24").HorizontalAlignment = XL_CENTER
+    sheet.Range("N25:Q32").HorizontalAlignment = XL_CENTER
+    sheet.Range("D32:D36").NumberFormat = '[=0]"today";[=1]"1 day";0" days"'
+    sheet.Range("D32:D36").HorizontalAlignment = XL_LEFT
+
+    # Flags: a word and a colour, never the colour alone.
+    color_when_equal(sheet.Range("D13:D27"), "OVERDUE", WHITE, RED)
+    color_when_equal(sheet.Range("D13:D27"), "This week", AMBER_TEXT, AMBER_FILL, bold=False)
+    sheet.Range("D13:D27").HorizontalAlignment = XL_CENTER
+    for address in ("F13:F27", "F32:F36"):
+        color_when_equal(sheet.Range(address), "Done", GREEN, bold=False)
+        color_when_equal(sheet.Range(address), "Blocked", AMBER_TEXT)
+    for address in ("G13:G27", "G32:G36", "O13:O20"):
+        color_when_equal(sheet.Range(address), "High", INK)  # bold, no colour: priority is not a status
+    rule = sheet.Range("Q25:Q32").FormatConditions.Add(XL_CELL_VALUE, XL_GREATER, "=0")
+    rule.Font.Color = rgb(RED)
     rule.Font.Bold = True
 
+    # ---- Freeze the top band, set the print area, one page wide
+    sheet.Range("A7").Select()
+    excel.ActiveWindow.FreezePanes = True
+    setup = sheet.PageSetup
+    setup.PrintArea = DASHBOARD_AREA
+    setup.Orientation = 2  # landscape
+    setup.Zoom = False
+    setup.FitToPagesWide = 1
+    setup.FitToPagesTall = False
     sheet.Tab.Color = rgb(NAVY)
-    sheet.Range("C4").Select()
+    sheet.Range("C5").Select()
 
 
 def build_how_to(sheet, today: dt.date) -> None:
@@ -507,6 +587,7 @@ def build_how_to(sheet, today: dt.date) -> None:
     sheet.Columns("A").ColumnWidth = 2
     sheet.Columns("B").ColumnWidth = 4
     sheet.Columns("C").ColumnWidth = 112
+    sheet.Rows(1).RowHeight = 8
     lines = (
         ("How to use this tracker", "", "title"),
         ("", "Demo built with made-up sample data. Every task and name here is invented.", "note"),
@@ -517,11 +598,12 @@ def build_how_to(sheet, today: dt.date) -> None:
         ("3", "To remove a task, right-click its row in the table and choose Delete > Table Rows.", ""),
         ("", "", ""),
         ("Read the dashboard", "", "head"),
-        ("4", "Pick an Owner, a Status or a Year in the yellow cells at the top. Everything on the page follows. Choose (All) to clear.", ""),
+        ("4", "Pick an Owner, a Status or a Year in the shaded cells at the top. Everything on the page follows. Choose (All) to clear.", ""),
         ("5", "Overdue = not Done and the Due date is before today. Due this week = not Done and due today or in the next 6 days.", ""),
-        ("6", f"This Week's Focus shows up to {FOCUS_ROWS} tasks, Next due dates {NEXT_ROWS}, Tasks in view {VIEW_ROWS}. "
+        ("6", f"Tasks in view shows up to {VIEW_ROWS} tasks, Next due dates {NEXT_ROWS}, This Week's Focus {FOCUS_ROWS}. "
               "A line under each list says how many more are not shown.", ""),
-        ("7", "In the Tasks sheet, an overdue Due date turns red and one due this week turns amber, by themselves, every day.", ""),
+        ("7", "In the Tasks sheet, an overdue Due date turns red and says OVERDUE; one due this week turns amber and says so. "
+              "They update by themselves, every day.", ""),
         ("", "", ""),
         ("Good to know", "", "head"),
         ("8", "Nothing here needs macros. The file works in Excel 2010 and later, including Microsoft 365.", ""),
@@ -536,16 +618,17 @@ def build_how_to(sheet, today: dt.date) -> None:
             number.Value = left
             number.Font.Bold = True
             number.Font.Color = rgb(NAVY)
-            number.Font.Size = 18 if style == "title" else 13
+            number.Font.Size = 20 if style == "title" else 13
         else:
             if left:
                 number.Value = int(left)
-                number.Font.Color = rgb(GREY)
+                number.Font.Color = rgb(SLATE)
             text.Value = right
             if style == "note":
+                text.Font.Size = 9
                 text.Font.Italic = True
-                text.Font.Color = rgb(GREY)
-        sheet.Rows(row).RowHeight = 28 if style == "title" else 20
+                text.Font.Color = rgb(SLATE)
+        sheet.Rows(row).RowHeight = 30 if style == "title" else 20
     sheet.Range("B2:B30").HorizontalAlignment = XL_LEFT
     sheet.Range("A1").Select()
 
@@ -561,6 +644,10 @@ def build(today: dt.date) -> None:
         excel.Visible = False
         excel.DisplayAlerts = False
         workbook = excel.Workbooks.Add()
+        normal = workbook.Styles("Normal").Font  # the guide's table text: Calibri 11, ink
+        normal.Name = "Calibri"
+        normal.Size = 11
+        normal.Color = rgb(INK)
         while workbook.Worksheets.Count < 4:
             workbook.Worksheets.Add(None, workbook.Worksheets(workbook.Worksheets.Count))
         while workbook.Worksheets.Count > 4:
@@ -585,7 +672,7 @@ def build(today: dt.date) -> None:
         properties("Company").Value = AUTHOR
 
         dashboard.Activate()
-        dashboard.Range("C4").Select()
+        dashboard.Range("C5").Select()
         excel.CalculateFull()
         workbook.SaveAs(str(WORKBOOK), XL_OPEN_XML_WORKBOOK)
         workbook.Close(False)

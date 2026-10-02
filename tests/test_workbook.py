@@ -146,17 +146,25 @@ def read_dashboard(workbook) -> dict:
     def named(name: str):
         return norm(workbook.Names(name).RefersToRange.Cells(1, 1).Value2)
 
+    def block(name: str) -> list[list]:
+        """A list's lines, read from where the build put it, as the tested fields in order."""
+        spec = bw.LAYOUT[name]
+        return [[row[i] for i in spec["columns"]] for row in grid(sheet.Range(spec["cells"]))]
+
+    def more_line(name: str):
+        return norm(sheet.Range(bw.LAYOUT[name]["more"]).Value2)
+
     return {
         "totals": {"Total": named("KpiTotal"), "Done": named("KpiDone"), "In progress": named("KpiInProgress"),
                    "Overdue": named("KpiOverdue"), "Due this week": named("KpiDueThisWeek")},
-        "focus": grid(sheet.Range("B12:F19")),
-        "focus_more": norm(sheet.Range("B20").Value2),
-        "next": grid(sheet.Range("H12:O16")),
-        "next_more": norm(sheet.Range("H17").Value2),
-        "view": grid(sheet.Range("H21:O35")),
-        "view_more": norm(sheet.Range("H36").Value2),
-        "owners": grid(sheet.Range("B24:F31")),
-        "owners_more": norm(sheet.Range("B32").Value2),
+        "focus": block("focus"),
+        "focus_more": more_line("focus"),
+        "next": block("next"),
+        "next_more": more_line("next"),
+        "view": block("view"),
+        "view_more": more_line("view"),
+        "owners": block("owners"),
+        "owners_more": more_line("owners"),
         "owner_choices": column(workbook.Names("OwnerList").RefersToRange),
         "year_choices": column(workbook.Names("YearList").RefersToRange),
     }
