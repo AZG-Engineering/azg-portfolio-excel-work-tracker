@@ -30,7 +30,7 @@ Built by AZG Engineering.
 | `tools\make_screenshots.py` | Rebuilds the three images in `screenshots\`. |
 | `tools\check_metadata.py` | Shows the author fields and checks nothing about this PC is stored in the files. |
 | `tools\showcase.py`, `tools\fonts\` | The AZG showcase kit (the screenshot template) and the Inter font it uses. |
-| `screenshots\` | Three 1600x1200 PNG images. |
+| `screenshots\` | Four 1600x1200 PNG images: `0-cover.png` (a cover that survives being cropped to a wider frame) and three showcase images. |
 
 ## How to use the workbook
 
@@ -175,6 +175,12 @@ python -m venv .venv
   (`tools\showcase.py`). Don't edit that copy: change the kit in
   `Products\showcase-kit\` and sync it. A 400 px wide copy of each image goes to
   `screenshots\_work\` to check the headline numbers read at thumbnail size.
+- **The cover** (`0-cover.png`) shows the three leading totals and four lines of the
+  main list: two flagged OVERDUE, then two flagged "This week". Which four depends
+  on today's date; if the list doesn't have that run of flags, the tool says to
+  rebuild the workbook first. It has no title strip: the headline, the content and
+  the demo label sit in a band that survives a crop to 16:9 or 2:1. Both crops are
+  written to `screenshots\_work\` to look at.
 
 ## Dependencies and licences
 
@@ -198,7 +204,7 @@ Kept in this repository, for the screenshots only:
 | Item | Version | Licence | Where |
 | --- | --- | --- | --- |
 | Inter font (Regular, SemiBold) | 4.1 | SIL Open Font License 1.1 | `tools\fonts\`, with the licence text in `tools\fonts\OFL.txt` |
-| AZG showcase kit | 1.0.0 | AZG Engineering's own | `tools\showcase.py`, an exact copy of `Products\showcase-kit\showcase.py` |
+| AZG showcase kit | 1.1.0 | AZG Engineering's own | `tools\showcase.py`, an exact copy of `Products\showcase-kit\showcase.py` |
 
 The workbook uses Calibri, which ships with Office. It is referenced by name, not
 embedded. No system font is drawn into the framed images.
