@@ -12,6 +12,9 @@ opened read-only and never saved), PyMuPDF draws the PDF, and the kit frames it.
   2  the same view with the Owner filter set
   3  before / after: the plain task list, and the dashboard it feeds
 
+The tool prints the size the text and the tile numbers come out at. The style
+guide wants text at 20 px or more and headline numbers at 72 px or more.
+
 A 400 px wide copy of each image is written to screenshots\\_work\\ so the
 headline numbers can be checked at thumbnail size.
 """
@@ -39,8 +42,9 @@ VIEWS = {
     "owner": ("Dashboard", "A1:J24", {"SelOwner": FILTER_OWNER}, None, ()),
     # Two tiles and the list's first columns. The list's side note runs past
     # column F and would be cut mid-sentence, so it is blanked for this view.
-    "after": ("Dashboard", "A1:F24", {}, None, ("E11",)),
-    "before": ("Tasks", "A1:K33", {}, ("B", "C", "E"), ()),  # Task, Owner, Status
+    "after": ("Dashboard", "A1:F22", {}, None, ("E11",)),
+    # Task and Status, 30 tasks. More columns or rows would push the text under 20 px.
+    "before": ("Tasks", "A1:K31", {}, ("B", "E"), ()),
 }
 
 
@@ -116,15 +120,20 @@ def main() -> int:
     views = export_views()
     print("Writing screenshots:")
 
-    card, _ = filled_card(views["main"])
-    finish(card, "See what's overdue at a glance", "1-dashboard-overview.png")
+    card, scale = filled_card(views["main"])
+    finish(card, "See what's overdue at a glance", "1-dashboard-overview.png",
+           note=f"text {45.8 * scale:.0f} px, tile numbers {150 * scale:.0f} px")
 
-    card, _ = filled_card(views["owner"])
-    finish(card, "Pick an owner, the page follows", "2-filter-by-owner.png")
+    card, scale = filled_card(views["owner"])
+    finish(card, "Pick an owner, the page follows", "2-filter-by-owner.png",
+           note=f"text {45.8 * scale:.0f} px, tile numbers {150 * scale:.0f} px")
 
-    card, _ = kit.before_after(views["before"], views["after"], share=0.40,
-                               before_note="a plain task list", after_note="the dashboard it feeds")
-    finish(card, "From a task list to a live dashboard", "3-before-after-list-to-dashboard.png")
+    card, scales = kit.before_after(views["before"], views["after"], share=0.34,
+                                    before_note="a plain task list", after_note="the dashboard it feeds")
+    # The exports are drawn at 300 dpi, so 11 pt text is 45.8 px before scaling.
+    finish(card, "From a task list to a live dashboard", "3-before-after-list-to-dashboard.png",
+           note=f"text {45.8 * scales[0]:.0f} px before, {45.8 * scales[1]:.0f} px after, "
+                f"tile numbers {150 * scales[1]:.0f} px")
     return 0
 
 
