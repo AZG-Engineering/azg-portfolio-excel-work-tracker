@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets (none are used; kept out as a rule)
+.env
+*.env
+credentials*
+token*
+
+# Working files and logs
+screenshots/_work/
+*.log
+
+# Excel lock files
+~$*

@@ -1,0 +1,5 @@
+# Build, test and screenshot tooling. The workbook itself needs only Excel.
+pywin32==312
+# Screenshots and the metadata check only:
+PyMuPDF==1.28.2
+Pillow==12.3.0
