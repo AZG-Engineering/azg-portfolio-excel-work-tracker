@@ -2,3 +2,6 @@
 *.xlsx binary
 *.png binary
 *.pdf binary
+*.ttf binary
+# The font licence is kept exactly as its authors published it.
+tools/fonts/OFL.txt -text
