@@ -8,7 +8,9 @@ __pycache__/
 .env
 *.env
 credentials*
-token*
+token
+token.*
+*.token
 
 # Working files and logs
 screenshots/_work/
