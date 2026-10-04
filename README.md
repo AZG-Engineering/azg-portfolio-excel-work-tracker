@@ -208,3 +208,6 @@ Kept in this repository, for the screenshots only:
 
 The workbook uses Calibri, which ships with Office. It is referenced by name, not
 embedded. No system font is drawn into the framed images.
+
+## Licence
+Copyright © 2026 Azimuth Group LLC. All rights reserved. Published as a work sample; no licence to reuse it is granted. The Inter font in `tools\fonts\` is under the SIL Open Font License 1.1 (`tools\fonts\OFL.txt`).
