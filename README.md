@@ -61,8 +61,9 @@ of rows; on 365 the same views could be built with FILTER/SORT.
 - No dynamic-array functions (no FILTER, SORT, UNIQUE, XLOOKUP or LET), no macros,
   no add-ins, no array formulas that need Ctrl+Shift+Enter.
 - The progress bars use the fixed 0% to 100% scale that Excel 2010 added.
-- **Tested on:** Excel 2016 (Windows). It has not been opened here in 2010, 2013,
-  2019 or Microsoft 365; nothing in it is newer than 2010.
+- **Tested on:** Excel for Microsoft 365 (Windows). Uses formulas that exist in Excel 2010
+  and later; nothing in it is newer than AGGREGATE (Excel 2010). Not opened in 2010, 2013,
+  2016 or 2019.
 
 Because the lists are a fixed length, each one has a line underneath saying how many
 more match but are not shown: 8 lines for This Week's Focus, 5 for Next due dates,

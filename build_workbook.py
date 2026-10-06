@@ -14,7 +14,7 @@ All task data is made up. Dates are set relative to the day this is run, so that
 some tasks are overdue and some are due this week. Run it again for fresh dates.
 
 Every formula is a classic one (SUMPRODUCT, AGGREGATE, INDEX, MATCH, COUNTIF,
-IFERROR), so the workbook works in Excel 2010 and later.
+IFERROR), so the workbook uses formulas that exist in Excel 2010 and later.
 
 The look follows the AZG build style guide: its colours, Calibri, no gridlines,
 tiles with a coloured left bar, list headers on a pale band, teal progress bars
@@ -606,7 +606,8 @@ def build_how_to(sheet, today: dt.date) -> None:
               "They update by themselves, every day.", ""),
         ("", "", ""),
         ("Good to know", "", "head"),
-        ("8", "Nothing here needs macros. The file works in Excel 2010 and later, including Microsoft 365.", ""),
+        ("8", "Nothing here needs macros. It uses formulas that exist in Excel 2010 and later; "
+              "built and tested in Excel for Microsoft 365 on Windows.", ""),
         ("9", "The Lists sheet holds helper formulas for the dashboard. Leave it as it is.", ""),
         ("10", f"The sample dates were set on {today:%b} {today.day}, {today.year}, so some tasks were overdue and some due that week. "
                "The dashboard always compares with today's date, so the counts move as days pass.", ""),
